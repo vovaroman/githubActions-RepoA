@@ -1,0 +1,37 @@
+# Author: RZFeeser
+# .github/workflows/trigger_repo_b.yml
+name: RepoA Triggers RepoB
+
+on:
+  workflow_dispatch:    # button press
+
+jobs:
+  trigger_repo_b:      # this is the name of the job
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create a file with current datetime (this will be our artifact)
+        run: |
+          echo "github.com/vovaroman/githubActions-RepoA created this file" > generated-file.txt
+          date >> generated-file.txt        # date is the linux command to generate a timestamp and we write that into a file
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4      # if you UPLOAD artifact with vX you should DOWNLOAD with vX
+        with:
+          name: my-generated-artifact
+          path: generated-file.txt
+    
+      - name: Dispatch workflow in RepoB
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.MY_TOKEN }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: 'rzfeeser',
+              repo: 'RepoB',
+              workflow_id: 'triggered_by_repo_a.yml',
+              ref: 'main',
+              inputs: {
+                "artifact-run-id": "${{ github.run_id }}"
+              }
+            })
